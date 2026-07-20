@@ -91,22 +91,38 @@ const skipAntialias = isPhone && dpr >= 2;
 // 5. Grafikai profilok dedikálása a szintekhez
 const profiles = {
     0: { // LOW TIER
+        /*
         pixelRatio: Math.min(dpr, 1.25), // Alacsonyabb felbontásból indítunk
         antialias: false, 
         shadows: true, 
         shadowMapSize: 206, 
         exposure: 1.0,
         power: 'low-power'
+        */
+        pixelRatio: Math.min(dpr, 2.0), 
+        antialias: true, 
+        shadows: true, 
+        shadowMapSize: 1024, 
+        exposure: 1.12,
+        power: 'high-performance'
+        
     },
     1: { // MID TIER (Tabletek, átlagos mobilok)
-
+        /*
         pixelRatio: Math.min(dpr, 1.75), 
         antialias: !skipAntialias, // Okos döntés alapján
         shadows: true, 
         shadowMapSize: 512, // Kisebb árnyéktérkép
         exposure: 1.05,
         power: 'default'
-       
+       */
+       pixelRatio: Math.min(dpr, 2.0), 
+        antialias: true, 
+        shadows: true, 
+        shadowMapSize: 1024, 
+        exposure: 1.12,
+        power: 'high-performance'
+        
     },
     2: { // HIGH TIER (Erős asztali gépek)
         
