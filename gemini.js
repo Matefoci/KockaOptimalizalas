@@ -93,7 +93,7 @@ const profiles = {
     0: { // LOW TIER
         
         pixelRatio: Math.min(dpr, 1), // Alacsonyabb felbontásból indítunk
-        antialias: true, // Okos döntés alapján
+        antialias: false, // Okos döntés alapján
         shadows: true, 
         shadowMapSize: 206, 
         exposure: 1.0,
