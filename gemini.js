@@ -48,7 +48,7 @@ camera.lookAt(0, 0, 0);
 
 // Cél: ne legyen több, mint kb. 1.3 millió ténylegesen renderelt pixel
 // (ez a szám finomhangolható — kísérletezz vele a te jelenetedhez)
-const MAX_RENDER_PIXELS = 1_300_000;
+const MAX_RENDER_PIXELS = 1_500_000;
 
 function computeAdaptivePixelRatio(basePixelRatio) {
     const width = window.innerWidth;
