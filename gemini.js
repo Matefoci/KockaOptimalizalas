@@ -127,12 +127,12 @@ const profiles = {
         exposure: 1.12,
         power: 'high-performance'
         */
-        pixelRatio: Math.min(dpr, 1.15), // Alacsonyabb felbontásból indítunk
-        antialias: false, 
+        pixelRatio: Math.min(dpr, 1.75), 
+        antialias: true, 
         shadows: true, 
-        shadowMapSize: 206, 
-        exposure: 1.0,
-        power: 'low-power'
+        shadowMapSize: 1024, 
+        exposure: 1.12,
+        power: 'high-performance'
     }
 };
 
