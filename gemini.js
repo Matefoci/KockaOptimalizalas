@@ -174,7 +174,7 @@ fpsOverlay.textContent = "FPS: --";
 document.body.appendChild(fpsOverlay);
 const debugOverlay = document.createElement("div");
 debugOverlay.className = "fps-overlay"; // ugyanazt a stílust használja, mint az FPS kijelző
-debugOverlay.style.top = "40px"; // hogy ne fedje egymást az FPS kijelzővel — igazítsd a saját CSS-edhez
+debugOverlay.style.top = "60px"; // hogy ne fedje egymást az FPS kijelzővel — igazítsd a saját CSS-edhez
 debugOverlay.style.fontSize = "11px";
 debugOverlay.style.whiteSpace = "pre-line";
 debugOverlay.textContent = `
