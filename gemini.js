@@ -2,9 +2,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
-import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 
-RectAreaLightUniformsLib.init();
 
 const scene = new THREE.Scene();
 // Nagyon világos, letisztult, meleg törtfehér:
@@ -201,56 +199,25 @@ function updateShadowMap(now) {
         shadowDirty = false;
     }
 }
+// ===== POINT LIGHTS (a RectAreaLight-ok kiváltására, minden eszközön) =====
 const pointLightConfigs = [
-    { pos: [3, 1.1, -2.2],   color: 0xffe8cc, intensity: 6 },
-    { pos: [3, 1.5, -2],   color: 0xffe8cc, intensity: 3 },
-    { pos: [0, 0.1, -3.2],     color: 0xfff4e6, intensity: 4 },
-];
-
-const pointLights = pointLightConfigs.map(cfg => {
-    const pl = new THREE.PointLight(cfg.color, cfg.intensity, 15, 2);
-    pl.position.set(...cfg.pos);
-    pl.castShadow = false;
-    scene.add(pl);
-    return pl;
-});
-
-// ===== AREA LIGHTS (3 db) — lágy, széles fényfoltok, csak erős gépen =====
-const rectLightConfigs = [
-    { pos: [-0.8, 3.2, 1],  rot: [-Math.PI / 3, Math.PI / 6, 0],  w: 2.5, h: 2, color: 0xffffff, intensity: 2.5 },
-    { pos: [-2, 3.5, 2.5], rot: [0.77, 3, 0],                 w: 5, h: 5, color: 0xffe8d0, intensity: 2.5 },
-    { pos: [2.5, 2.5, 1.5], rot: [0.83, 1.58, 0],                 w: 2, h: 4.9, color: 0xffe8d0, intensity: 2 }
-];
-
-// ===== Point light "közelítés" ugyanazokhoz a pozíciókhoz, gyenge/közepes eszközre =====
-const rectReplacementConfigs = [
     // Az 1. RectAreaLight helyett — kis, fókuszált, semleges fehér, felülről-elölről
     { pos: [-0.5, 2.2, 0.6], color: 0xffffff, intensity: 3.0, distance: 8 },
 
-    // A 2. RectAreaLight helyett — nagy (5x5), meleg, bal oldalról/fentről — ez volt a legnagyobb, erősebb intenzitás indokolt
+    // A 2. RectAreaLight helyett — nagy (5x5), meleg, bal oldalról/fentről
     { pos: [-1.3, 2.4, 1.6], color: 0xffe8d0, intensity: 3.5, distance: 9 },
 
     // A 3. RectAreaLight helyett — jobb oldalról, meleg, keskeny de magas panel
     { pos: [1.7, 1.9, 1.0], color: 0xffe8d0, intensity: 2.8, distance: 8 },
 ];
 
-if (tier === 2) {
-    // Csak erős gépen: RectAreaLight-ok létrehozása
-    rectLightConfigs.forEach(cfg => {
-        const rl = new THREE.RectAreaLight(cfg.color, cfg.intensity, cfg.w, cfg.h);
-        rl.position.set(...cfg.pos);
-        rl.rotation.set(...cfg.rot);
-        scene.add(rl);
-    });
-} else {
-    // Gyenge/közepes eszközön: point lightok az area lightok helyett
-    rectReplacementConfigs.forEach(cfg => {
-        const pl = new THREE.PointLight(cfg.color, cfg.intensity, cfg.distance, 2);
-        pl.position.set(...cfg.pos);
-        pl.castShadow = false;
-        scene.add(pl);
-    });
-}
+const pointLights = pointLightConfigs.map(cfg => {
+    const pl = new THREE.PointLight(cfg.color, cfg.intensity, cfg.distance, 2);
+    pl.position.set(...cfg.pos);
+    pl.castShadow = false;
+    scene.add(pl);
+    return pl;
+});
  //GUI fényeléshez
 /*
 
