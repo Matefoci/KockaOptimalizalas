@@ -52,7 +52,7 @@ camera.lookAt(0, 0, 0);
 
 // Cél: ne legyen több, mint kb. 1.3 millió ténylegesen renderelt pixel
 // (ez a szám finomhangolható — kísérletezz vele a te jelenetedhez)
-const MAX_RENDER_PIXELS = 1_300_000;
+const MAX_RENDER_PIXELS = 10_300_000;
 
 function computeAdaptivePixelRatio(basePixelRatio) {
     const width = window.innerWidth;
@@ -62,7 +62,7 @@ function computeAdaptivePixelRatio(basePixelRatio) {
     if (requestedPixels <= MAX_RENDER_PIXELS) return basePixelRatio;
     
     const scale = Math.sqrt(MAX_RENDER_PIXELS / (width * height));
-    return Math.max(0.6, scale); 
+    return Math.max(0.8, scale); 
 }
 
 // 1. Eszköz típusának precízebb azonosítása
