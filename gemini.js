@@ -411,10 +411,9 @@ function updateCameraProjection() {
     renderer.setSize(width, height, false);
 
      // A régi, hibás sorok helyett:
-    const adaptivePixelRatio = computeAdaptivePixelRatio(
-        tier === 0 ? 0.8 : tier === 1 ? Math.min(window.devicePixelRatio || 1, 1.25) : Math.min(window.devicePixelRatio || 1, 1.75)
-);
-renderer.setPixelRatio(adaptivePixelRatio);
+    const adaptivePixelRatio = computeAdaptivePixelRatio(profile.pixelRatio);
+    renderer.setPixelRatio(adaptivePixelRatio);
+
 
     camera.aspect = aspect;
 
