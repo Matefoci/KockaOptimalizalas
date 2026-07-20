@@ -12,8 +12,6 @@ scene.background = new THREE.Color(0xf9f7f4);
 scene.fog = new THREE.Fog(0xf9f7f4, 1.5, 45);
 
 
-
-
 const sun = new THREE.DirectionalLight(0xfff1e0, 0.8);
 sun.position.set(4.2, 6.2, 3.2);
 sun.castShadow = true;
@@ -50,7 +48,7 @@ camera.lookAt(0, 0, 0);
 
 // Cél: ne legyen több, mint kb. 1.3 millió ténylegesen renderelt pixel
 // (ez a szám finomhangolható — kísérletezz vele a te jelenetedhez)
-const MAX_RENDER_PIXELS = 1_800_000;
+const MAX_RENDER_PIXELS = 2_400_000;
 
 function computeAdaptivePixelRatio(basePixelRatio) {
     const width = window.innerWidth;
@@ -93,7 +91,7 @@ const skipAntialias = isPhone && dpr >= 2;
 // 5. Grafikai profilok dedikálása a szintekhez
 const profiles = {
     0: { // LOW TIER
-        pixelRatio: Math.min(dpr, 1), // Alacsonyabb felbontásból indítunk
+        pixelRatio: Math.min(dpr, 1.25), // Alacsonyabb felbontásból indítunk
         antialias: false, 
         shadows: true, 
         shadowMapSize: 206, 
@@ -102,7 +100,7 @@ const profiles = {
     },
     1: { // MID TIER (Tabletek, átlagos mobilok)
 
-        pixelRatio: Math.min(dpr, 1.25), 
+        pixelRatio: Math.min(dpr, 1.75), 
         antialias: !skipAntialias, // Okos döntés alapján
         shadows: true, 
         shadowMapSize: 512, // Kisebb árnyéktérkép
@@ -112,7 +110,7 @@ const profiles = {
     },
     2: { // HIGH TIER (Erős asztali gépek)
         
-        pixelRatio: Math.min(dpr, 1.75), 
+        pixelRatio: Math.min(dpr, 2.0), 
         antialias: true, 
         shadows: true, 
         shadowMapSize: 1024, 
@@ -199,19 +197,29 @@ function updateShadowMap(now) {
         shadowDirty = false;
     }
 }
-// ===== POINT LIGHTS (a RectAreaLight-ok kiváltására, minden eszközön) =====
+// ===== POINT LIGHTS — eredeti 3 =====
 const pointLightConfigs = [
-    // Az 1. RectAreaLight helyett — kis, fókuszált, semleges fehér, felülről-elölről
-    { pos: [-0.5, 2.2, 0.6], color: 0xffffff, intensity: 3.0, distance: 8 },
-
-    // A 2. RectAreaLight helyett — nagy (5x5), meleg, bal oldalról/fentről
-    { pos: [-1.3, 2.4, 1.6], color: 0xffe8d0, intensity: 3.5, distance: 9 },
-
-    // A 3. RectAreaLight helyett — jobb oldalról, meleg, keskeny de magas panel
-    { pos: [1.7, 1.9, 1.0], color: 0xffe8d0, intensity: 2.8, distance: 8 },
+    { pos: [3, 1.1, -2.2],   color: 0xffe8cc, intensity: 6 },
+    { pos: [3, 1.5, -2],   color: 0xffe8cc, intensity: 3 },
+    { pos: [0, 0.1, -3.2],     color: 0xfff4e6, intensity: 4 },
 ];
 
 const pointLights = pointLightConfigs.map(cfg => {
+    const pl = new THREE.PointLight(cfg.color, cfg.intensity, 15, 2);
+    pl.position.set(...cfg.pos);
+    pl.castShadow = false;
+    scene.add(pl);
+    return pl;
+});
+
+// ===== POINT LIGHTS — a RectAreaLight-ok kiváltására =====
+const rectReplacementConfigs = [
+    { pos: [-0.5, 2.2, 0.6], color: 0xffffff, intensity: 3.0, distance: 8 },
+    { pos: [-1.3, 2.4, 1.6], color: 0xffe8d0, intensity: 3.5, distance: 9 },
+    { pos: [1.7, 1.9, 1.0], color: 0xffe8d0, intensity: 2.8, distance: 8 },
+];
+
+const rectReplacementLights = rectReplacementConfigs.map(cfg => {
     const pl = new THREE.PointLight(cfg.color, cfg.intensity, cfg.distance, 2);
     pl.position.set(...cfg.pos);
     pl.castShadow = false;
