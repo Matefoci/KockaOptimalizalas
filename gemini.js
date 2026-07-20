@@ -2,6 +2,9 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
+
+RectAreaLightUniformsLib.init();
 
 const scene = new THREE.Scene();
 // Nagyon világos, letisztult, meleg törtfehér:
@@ -10,11 +13,7 @@ scene.background = new THREE.Color(0xf9f7f4);
 // ... pár sorral lejjebb (fontos, hogy a köd is ugyanaz a szín legyen!) ...
 scene.fog = new THREE.Fog(0xf9f7f4, 1.5, 45);
 
-const hemiLight = new THREE.HemisphereLight(0xf4e9d8, 0x2f3a43, 0.45);
-scene.add(hemiLight);
 
-const ambientLight = new THREE.AmbientLight(0xfff0d7, 0.12);
-scene.add(ambientLight);
 
 
 const sun = new THREE.DirectionalLight(0xfff1e0, 0.95);
@@ -201,6 +200,36 @@ function updateShadowMap(now) {
         shadowDirty = false;
     }
 }
+const pointLightConfigs = [
+    { pos: [3, 1.1, -2.2],   color: 0xffe8cc, intensity: 6 },
+    { pos: [3, 1.5, -2],   color: 0xffe8cc, intensity: 3 },
+    { pos: [0, 0.1, -3.2],     color: 0xfff4e6, intensity: 4 },
+    
+];
+
+const pointLights = pointLightConfigs.map(cfg => {
+    const pl = new THREE.PointLight(cfg.color, cfg.intensity, 15, 2);
+    pl.position.set(...cfg.pos);
+    pl.castShadow = false;
+    scene.add(pl);
+    return pl;
+});
+
+// ===== AREA LIGHTS (3 db) — lágy, széles fényfoltok =====
+const rectLightConfigs = [
+    { pos: [-0.8, 3.2, 1],  rot: [-Math.PI / 3, Math.PI / 6, 0],  w: 2.5, h: 2, color: 0xffffff, intensity: 2.5 },
+    //{ pos: [-1.4, 3, 1.5], rot: [0, Math.PI, 0],                 w: 2, h: 1.5, color: 0xffe8d0, intensity: 10 },
+    { pos: [-2, 3.5, 2.5], rot: [0.77, 3, 0],                 w: 5, h: 5, color: 0xffe8d0, intensity: 2.5 },
+    { pos: [2.5, 2.5, 1.5], rot: [0.83, 1.58, 0],                 w: 2, h: 4.9, color: 0xffe8d0, intensity: 2 }
+];
+
+const rectLights = rectLightConfigs.map(cfg => {
+    const rl = new THREE.RectAreaLight(cfg.color, cfg.intensity, cfg.w, cfg.h);
+    rl.position.set(...cfg.pos);
+    rl.rotation.set(...cfg.rot);
+    scene.add(rl);
+    return rl;
+});
 
  //GUI fényeléshez
 /*
@@ -375,7 +404,6 @@ function updateCameraProjection() {
         tier === 0 ? 0.8 : tier === 1 ? Math.min(window.devicePixelRatio || 1, 1.25) : Math.min(window.devicePixelRatio || 1, 1.75)
 );
 renderer.setPixelRatio(adaptivePixelRatio);
-    renderer.setPixelRatio(adaptivePixelRatio);
 
     camera.aspect = aspect;
 
