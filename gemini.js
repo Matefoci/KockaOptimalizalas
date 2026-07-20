@@ -46,15 +46,19 @@ camera.position.set(3.5, 1.8, -3.5);
 camera.lookAt(0, 0, 0);
 
 
-function computeAdaptivePixelRatio(basePixelRatio, maxRenderPixels, minPixelRatio) {
+// Cél: ne legyen több, mint kb. 1.3 millió ténylegesen renderelt pixel
+// (ez a szám finomhangolható — kísérletezz vele a te jelenetedhez)
+const MAX_RENDER_PIXELS = 1_300_000;
+
+function computeAdaptivePixelRatio(basePixelRatio) {
     const width = window.innerWidth;
     const height = window.innerHeight;
     const requestedPixels = width * height * basePixelRatio * basePixelRatio;
 
-    if (requestedPixels <= maxRenderPixels) return basePixelRatio;
-
-    const scale = Math.sqrt(maxRenderPixels / (width * height));
-    return Math.max(minPixelRatio, scale);
+    if (requestedPixels <= MAX_RENDER_PIXELS) return basePixelRatio;
+    
+    const scale = Math.sqrt(MAX_RENDER_PIXELS / (width * height));
+    return Math.max(0.8, scale); 
 }
 
 // 1. Eszköz típusának precízebb azonosítása
@@ -69,102 +73,61 @@ const cores = navigator.hardwareConcurrency || (isIOS ? 4 : 2); // iOS ad magoka
 // iOS nem ad memóriát, így ha undefined, a magok számából tippelünk (ha >=6 magos Apple chip, valószínűleg van 4GB+ RAM)
 const memory = navigator.deviceMemory || (isIOS && cores >= 6 ? 4 : 2); 
 
-// 3. Többszintű (Tier) kategóriarendszer felállítása
-// -1 = Emergency, 0 = Low, 1 = Mid, 2 = High
-let tier = 2;
+// 3. Háromszintű (Tier) kategóriarendszer felállítása
+// 0 = Low (régi mobilok, irodai gépek), 1 = Mid (átlagos mobilok/tabletek), 2 = High (Gamer/M-szériás Mac, erős PC)
+let tier = 2; 
 
-const emergencyDevice =
-    memory <= 1 ||
-    cores <= 2 ||
-    (isPhone && dpr >= 2 && (memory <= 2 || cores <= 4));
-
-if (emergencyDevice) {
-    tier = -1;
-} else if (memory <= 2 || cores <= 2) {
-    tier = 0;
-} else if (memory <= 4 || cores <= 4) {
-    tier = 1;
-}
+if (memory <= 4 || cores <= 4) tier = 1; 
+if (memory <= 2 || cores <= 2) tier = 0; 
 
 // Tabletek "leminősítése": a nagy képernyő miatt a Mid-tier beállítások biztonságosabbak számukra
-if (isTablet && tier === 2) tier = 1;
+if (isTablet && tier === 2) tier = 1; 
 
 // 4. Okos élsimítás (Anti-aliasing) döntés
 const dpr = window.devicePixelRatio || 1;
 // Telefonokon, ha nagyon sűrű a kijelző (Retina/OLED), felesleges az élsimítás
-const skipAntialias = isPhone && dpr >= 2;
-
-const tierNames = {
-    [-1]: 'EMERGENCY',
-    0: 'LOW',
-    1: 'MID',
-    2: 'HIGH',
-};
+const skipAntialias = isPhone && dpr >= 2; 
 
 // 5. Grafikai profilok dedikálása a szintekhez
 const profiles = {
-    [-1]: { // EMERGENCY TIER
-        pixelRatio: Math.min(dpr, 0.72),
-        minPixelRatio: 0.55,
-        antialias: false,
-        shadows: true,
-        shadowMapSize: 256,
-        shadowType: THREE.PCFShadowMap,
-        exposure: 0.98,
-        power: 'low-power',
-        renderPixelBudget: 650_000,
-        frameIntervalMs: 33,
-        shadowUpdateInterval: 320,
-    },
     0: { // LOW TIER
-        pixelRatio: Math.min(dpr, 0.9),
-        minPixelRatio: 0.65,
-        antialias: !skipAntialias,
-        shadows: true,
-        shadowMapSize: 384,
-        shadowType: THREE.PCFShadowMap,
+        
+        pixelRatio: Math.min(dpr, 1), // Alacsonyabb felbontásból indítunk
+        antialias: true, // Okos döntés alapján
+        shadows: true, 
+        shadowMapSize: 206, 
         exposure: 1.0,
-        power: 'low-power',
-        renderPixelBudget: 900_000,
-        frameIntervalMs: 0,
-        shadowUpdateInterval: 240,
+        power: 'low-power'
+       
+        
     },
     1: { // MID TIER (Tabletek, átlagos mobilok)
-        pixelRatio: Math.min(dpr, 1.15),
-        minPixelRatio: 0.75,
-        antialias: !skipAntialias,
-        shadows: true,
-        shadowMapSize: 512,
-        shadowType: THREE.PCFShadowMap,
+        
+        pixelRatio: Math.min(dpr, 1.3), 
+        antialias: true, // Okos döntés alapján
+        shadows: true, 
+        shadowMapSize: 512, // Kisebb árnyéktérkép
         exposure: 1.05,
-        power: 'default',
-        renderPixelBudget: 1_250_000,
-        frameIntervalMs: 0,
-        shadowUpdateInterval: 140,
+        power: 'default'
+      
+        
     },
     2: { // HIGH TIER (Erős asztali gépek)
-        pixelRatio: Math.min(dpr, 1.6),
-        minPixelRatio: 0.85,
-        antialias: true,
-        shadows: true,
-        shadowMapSize: 1024,
-        shadowType: THREE.PCFSoftShadowMap,
+    
+        pixelRatio: Math.min(dpr, 1.75), 
+        antialias: true, 
+        shadows: true, 
+        shadowMapSize: 1024, 
         exposure: 1.12,
-        power: 'high-performance',
-        renderPixelBudget: 1_800_000,
-        frameIntervalMs: 0,
-        shadowUpdateInterval: 100,
+        power: 'high-performance'
+        
     }
 };
 
 const profile = profiles[tier];
 
 // Költségvetés-ellenőrzés
-profile.pixelRatio = computeAdaptivePixelRatio(
-    profile.pixelRatio,
-    profile.renderPixelBudget,
-    profile.minPixelRatio
-);
+profile.pixelRatio = computeAdaptivePixelRatio(profile.pixelRatio);
 
 // 6. Renderer inicializálása
 const canvas = document.querySelector("#bg");
@@ -184,7 +147,7 @@ renderer.toneMappingExposure = profile.exposure;
 
 if (profile.shadows) {
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = profile.shadowType;
+    renderer.shadowMap.type = tier === 1 ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
     renderer.shadowMap.autoUpdate = false;
     renderer.shadowMap.needsUpdate = true;
 } else {
@@ -194,7 +157,6 @@ if (profile.shadows) {
 
 sun.castShadow = profile.shadows;
 sun.shadow.mapSize.set(profile.shadowMapSize, profile.shadowMapSize);
-sun.shadow.radius = tier <= 0 ? 0.8 : 1.6;
 sun.shadow.camera.updateProjectionMatrix();
 
 
@@ -216,7 +178,7 @@ debugOverlay.style.top = "60px"; // hogy ne fedje egymást az FPS kijelzővel �
 debugOverlay.style.fontSize = "11px";
 debugOverlay.style.whiteSpace = "pre-line";
 debugOverlay.textContent = `
-Tier: ${tier} (${tierNames[tier]})
+Tier: ${tier} (${tier === 0 ? 'LOW' : tier === 1 ? 'MID' : 'HIGH'})
 Device: ${isIOS ? 'iOS' : isPhone ? 'Phone' : isTablet ? 'Tablet' : 'Desktop'}
 Cores: ${cores} | Memory: ${memory}GB
 DPR: ${dpr.toFixed(2)} | PixelRatio: ${profile.pixelRatio.toFixed(2)}
@@ -225,7 +187,7 @@ ShadowMapSize: ${profile.shadowMapSize} | Power: ${profile.power}
 `.trim();
 document.body.appendChild(debugOverlay);
 
-sun.shadow.radius = tier <= 0 ? 0.8 : 1.6;
+let fpsFrames = 0;
 let fpsLastUpdate = performance.now();
 let shadowDirty = true;
 let lastShadowUpdate = 0;
@@ -234,17 +196,19 @@ function updateFpsDisplay(now) {
     fpsFrames += 1;
     if (now - fpsLastUpdate < 300) return;
     const fps = (fpsFrames * 1000) / (now - fpsLastUpdate);
+    fpsOverlay.textContent = `FPS: ${Math.round(fps)}`;
     fpsFrames = 0;
     fpsLastUpdate = now;
 }
 
-    let lastRenderTime = 0;
 function requestShadowUpdate() {
     shadowDirty = true;
 }
 
 function updateShadowMap(now) {
-    const interval = profile.shadowUpdateInterval;
+    if (!profile.shadows) return;
+
+    const interval = tier === 0 ? 240 : 140;
     if (shadowDirty && (now - lastShadowUpdate >= interval || lastShadowUpdate === 0)) {
         renderer.shadowMap.needsUpdate = true;
         lastShadowUpdate = now;
@@ -281,7 +245,6 @@ const rectReplacementLights = rectReplacementConfigs.map(cfg => {
     return pl;
 });
  //GUI fényeléshez
-    const now = performance.now();
 /*
 
 
@@ -290,16 +253,11 @@ const gui = new GUI();
 
 const sunFolder = gui.addFolder('Sun');
 sunFolder.add(sun.position, 'x', -10, 10, 0.1);
-        updateShadowMap(now);
-    }
-
-    if (profile.frameIntervalMs > 0 && now - lastRenderTime < profile.frameIntervalMs) {
-        return;
+sunFolder.add(sun.position, 'y', -10, 10, 0.1);
 sunFolder.add(sun.position, 'z', -10, 10, 0.1);
 sunFolder.add(sun, 'intensity', 0, 10, 0.1);
-    lastRenderTime = now;
 
-    updateFpsDisplay(now);
+pointLights.forEach((pl, i) => {
     const f = gui.addFolder(`PointLight ${i}`);
     f.add(pl.position, 'x', -8, 8, 0.1);
     f.add(pl.position, 'y', -8, 8, 0.1);
@@ -463,11 +421,8 @@ function updateCameraProjection() {
 
     renderer.setSize(width, height, false);
 
-    const adaptivePixelRatio = computeAdaptivePixelRatio(
-        profile.pixelRatio,
-        profile.renderPixelBudget,
-        profile.minPixelRatio
-    );
+     // A régi, hibás sorok helyett:
+    const adaptivePixelRatio = computeAdaptivePixelRatio(profile.pixelRatio);
     renderer.setPixelRatio(adaptivePixelRatio);
 
 
@@ -492,7 +447,6 @@ updateCameraProjection();
 
 function animate() {
     requestAnimationFrame(animate);
-    const now = performance.now();
 
     let isMoving = false;
 
@@ -519,16 +473,11 @@ function animate() {
         renderer.shadowMap.needsUpdate = true;
     } else {
         // Csak álló helyzetben engedjük a ritkított/egyszeri frissítést
-        updateShadowMap(now);
+        updateShadowMap(performance.now());
     }
 
-    if (profile.frameIntervalMs > 0 && now - lastRenderTime < profile.frameIntervalMs) {
-        return;
-    }
-
-    lastRenderTime = now;
     renderer.render(scene, camera);
-    updateFpsDisplay(now);
+    updateFpsDisplay(performance.now());
 }
 
 // esemenykezeles
