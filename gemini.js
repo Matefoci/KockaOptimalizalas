@@ -48,7 +48,7 @@ camera.lookAt(0, 0, 0);
 
 // Cél: ne legyen több, mint kb. 1.3 millió ténylegesen renderelt pixel
 // (ez a szám finomhangolható — kísérletezz vele a te jelenetedhez)
-const MAX_RENDER_PIXELS = 1_800_000;
+const MAX_RENDER_PIXELS = 1_300_000;
 
 function computeAdaptivePixelRatio(basePixelRatio) {
     const width = window.innerWidth;
@@ -92,7 +92,7 @@ const skipAntialias = isPhone && dpr >= 2;
 const profiles = {
     0: { // LOW TIER
         
-        pixelRatio: Math.min(dpr, 1.15), // Alacsonyabb felbontásból indítunk
+        pixelRatio: Math.min(dpr, 1), // Alacsonyabb felbontásból indítunk
         antialias: true, // Okos döntés alapján
         shadows: true, 
         shadowMapSize: 206, 
