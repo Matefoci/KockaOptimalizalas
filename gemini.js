@@ -48,7 +48,7 @@ camera.lookAt(0, 0, 0);
 
 // Cél: ne legyen több, mint kb. 1.3 millió ténylegesen renderelt pixel
 // (ez a szám finomhangolható — kísérletezz vele a te jelenetedhez)
-const MAX_RENDER_PIXELS = 2_300_000;
+const MAX_RENDER_PIXELS = 1_800_000;
 
 function computeAdaptivePixelRatio(basePixelRatio) {
     const width = window.innerWidth;
@@ -93,7 +93,7 @@ const profiles = {
     0: { // LOW TIER
         
         pixelRatio: Math.min(dpr, 1.25), // Alacsonyabb felbontásból indítunk
-        antialias: false, 
+        antialias: true, // Okos döntés alapján
         shadows: true, 
         shadowMapSize: 206, 
         exposure: 1.0,
@@ -103,8 +103,8 @@ const profiles = {
     },
     1: { // MID TIER (Tabletek, átlagos mobilok)
         
-        pixelRatio: Math.min(dpr, 2), 
-        antialias: !skipAntialias, // Okos döntés alapján
+        pixelRatio: Math.min(dpr, 1.5), 
+        antialias: true, // Okos döntés alapján
         shadows: true, 
         shadowMapSize: 512, // Kisebb árnyéktérkép
         exposure: 1.05,
@@ -344,10 +344,19 @@ const LIFT_SPEED = 0.05;
 let baseY = 0;
 
 const modelUrls = [
+    /*
+        new URL('./models/fKisMeretKocka2.glb', import.meta.url).href,
+    new URL('./models/PlaneMeret.glb', import.meta.url).href,
+    new URL('./models/Nyil6.glb', import.meta.url).href,
+
+    
+    */
+
     new URL('./models/kocka-ktx2.glb', import.meta.url).href,
     new URL('./models/plane-ktx2.glb', import.meta.url).href,
     new URL('./models/Nyil6.glb', import.meta.url).href,
 ];
+
 
 Promise.all([
     loader.loadAsync(modelUrls[0]),
