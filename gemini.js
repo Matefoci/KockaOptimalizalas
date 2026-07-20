@@ -16,7 +16,7 @@ scene.fog = new THREE.Fog(0xf9f7f4, 1.5, 45);
 
 
 
-const sun = new THREE.DirectionalLight(0xfff1e0, 0.95);
+const sun = new THREE.DirectionalLight(0xfff1e0, 0.8);
 sun.position.set(4.2, 6.2, 3.2);
 sun.castShadow = true;
 sun.shadow.mapSize.set(1024, 1024);
@@ -31,6 +31,7 @@ sun.shadow.camera.near = 0.5;
 sun.shadow.camera.far = 20;
 scene.add(sun);
 
+/*
 const fillLight = new THREE.PointLight(0xffe8cc, 4.2, 14, 2);
 fillLight.position.set(3.2, 2, -2.4);
 fillLight.castShadow = false;
@@ -41,7 +42,7 @@ const rimLight = new THREE.PointLight(0x8fb1ff, 1.1, 17, 2);
 rimLight.position.set(-3.2, 2, 2.8);
 rimLight.castShadow = false;
 scene.add(rimLight);
-
+*/
 
 const DEFAULT_FOV = 28;
 const camera = new THREE.PerspectiveCamera(DEFAULT_FOV, window.innerWidth / window.innerHeight, 0.1, 100);
@@ -146,7 +147,7 @@ renderer.toneMappingExposure = profile.exposure;
 
 if (profile.shadows) {
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = tier === 1 ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = PCFShadowMap;
     renderer.shadowMap.autoUpdate = false;
     renderer.shadowMap.needsUpdate = true;
 } else {
