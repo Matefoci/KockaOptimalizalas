@@ -52,7 +52,7 @@ camera.lookAt(0, 0, 0);
 
 // Cél: ne legyen több, mint kb. 1.3 millió ténylegesen renderelt pixel
 // (ez a szám finomhangolható — kísérletezz vele a te jelenetedhez)
-const MAX_RENDER_PIXELS = 10_300_000;
+const MAX_RENDER_PIXELS = 1_800_000;
 
 function computeAdaptivePixelRatio(basePixelRatio) {
     const width = window.innerWidth;
@@ -95,44 +95,32 @@ const skipAntialias = isPhone && dpr >= 2;
 // 5. Grafikai profilok dedikálása a szintekhez
 const profiles = {
     0: { // LOW TIER
-         pixelRatio: Math.min(dpr, 1.75), 
-        antialias: true, 
+        pixelRatio: Math.min(dpr, 1), // Alacsonyabb felbontásból indítunk
+        antialias: false, 
         shadows: true, 
-        shadowMapSize: 1024, 
-        exposure: 1.12,
-        power: 'high-performance'
+        shadowMapSize: 206, 
+        exposure: 1.0,
+        power: 'low-power'
     },
     1: { // MID TIER (Tabletek, átlagos mobilok)
-        /*
+
         pixelRatio: Math.min(dpr, 1.25), 
         antialias: !skipAntialias, // Okos döntés alapján
         shadows: true, 
         shadowMapSize: 512, // Kisebb árnyéktérkép
         exposure: 1.05,
         power: 'default'
-        */
-        pixelRatio: Math.min(dpr, 1.75), 
-        antialias: true, 
-        shadows: true, 
-        shadowMapSize: 1024, 
-        exposure: 1.12,
-        power: 'high-performance'
+       
     },
     2: { // HIGH TIER (Erős asztali gépek)
-        /*
+        
         pixelRatio: Math.min(dpr, 1.75), 
         antialias: true, 
         shadows: true, 
         shadowMapSize: 1024, 
         exposure: 1.12,
         power: 'high-performance'
-        */
-        pixelRatio: Math.min(dpr, 1.75), 
-        antialias: true, 
-        shadows: true, 
-        shadowMapSize: 1024, 
-        exposure: 1.12,
-        power: 'high-performance'
+        
     }
 };
 
