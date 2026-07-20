@@ -48,7 +48,7 @@ camera.lookAt(0, 0, 0);
 
 // Cél: ne legyen több, mint kb. 1.3 millió ténylegesen renderelt pixel
 // (ez a szám finomhangolható — kísérletezz vele a te jelenetedhez)
-const MAX_RENDER_PIXELS = 1_500_000;
+const MAX_RENDER_PIXELS = 1_800_000;
 
 function computeAdaptivePixelRatio(basePixelRatio) {
     const width = window.innerWidth;
@@ -103,7 +103,7 @@ const profiles = {
     },
     1: { // MID TIER (Tabletek, átlagos mobilok)
         
-        pixelRatio: Math.min(dpr, 1.5), 
+        pixelRatio: Math.min(dpr, 1.75), 
         antialias: !skipAntialias, // Okos döntés alapján
         shadows: true, 
         shadowMapSize: 512, // Kisebb árnyéktérkép
