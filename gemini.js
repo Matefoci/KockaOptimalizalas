@@ -5,10 +5,7 @@ import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 
 
 const scene = new THREE.Scene();
-// Nagyon világos, letisztult, meleg törtfehér:
 scene.background = new THREE.Color(0xf9f7f4);
-
-// ... pár sorral lejjebb (fontos, hogy a köd is ugyanaz a szín legyen!) ...
 scene.fog = new THREE.Fog(0xf9f7f4, 1.5, 45);
 
 
@@ -27,38 +24,22 @@ sun.shadow.camera.near = 0.5;
 sun.shadow.camera.far = 20;
 scene.add(sun);
 
-/*
-const fillLight = new THREE.PointLight(0xffe8cc, 4.2, 14, 2);
-fillLight.position.set(3.2, 2, -2.4);
-fillLight.castShadow = false;
-scene.add(fillLight);
 
-
-const rimLight = new THREE.PointLight(0x8fb1ff, 1.1, 17, 2);
-rimLight.position.set(-3.2, 2, 2.8);
-rimLight.castShadow = false;
-scene.add(rimLight);
-*/
-
-const DEFAULT_FOV = 28;
+const DEFAULT_FOV = 22;
 const camera = new THREE.PerspectiveCamera(DEFAULT_FOV, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(3.5, 1.8, -3.5);
-camera.lookAt(0, 0, 0);
+camera.position.set(3.3, 1.5, -3.3);
+camera.lookAt(0, 0.1, 0);
 
 
-// Cél: ne legyen több, mint kb. 1.3 millió ténylegesen renderelt pixel
-// (ez a szám finomhangolható — kísérletezz vele a te jelenetedhez)
-const MAX_RENDER_PIXELS = 1_300_000;
-
-function computeAdaptivePixelRatio(basePixelRatio) {
+function computeAdaptivePixelRatio(basePixelRatio, maxRenderPixels, minPixelRatio) {
     const width = window.innerWidth;
     const height = window.innerHeight;
     const requestedPixels = width * height * basePixelRatio * basePixelRatio;
 
-    if (requestedPixels <= MAX_RENDER_PIXELS) return basePixelRatio;
-    
-    const scale = Math.sqrt(MAX_RENDER_PIXELS / (width * height));
-    return Math.max(0.8, scale); 
+    if (requestedPixels <= maxRenderPixels) return basePixelRatio;
+
+    const scale = Math.sqrt(maxRenderPixels / (width * height));
+    return Math.max(minPixelRatio, scale);
 }
 
 // 1. Eszköz típusának precízebb azonosítása
@@ -73,63 +54,103 @@ const cores = navigator.hardwareConcurrency || (isIOS ? 4 : 2); // iOS ad magoka
 // iOS nem ad memóriát, így ha undefined, a magok számából tippelünk (ha >=6 magos Apple chip, valószínűleg van 4GB+ RAM)
 const memory = navigator.deviceMemory || (isIOS && cores >= 6 ? 4 : 2); 
 
-// 3. Háromszintű (Tier) kategóriarendszer felállítása
-// 0 = Low (régi mobilok, irodai gépek), 1 = Mid (átlagos mobilok/tabletek), 2 = High (Gamer/M-szériás Mac, erős PC)
-let tier = 2; 
 
-if (memory <= 4 || cores <= 4) tier = 1; 
-if (memory <= 2 || cores <= 2) tier = 0; 
+const dpr = window.devicePixelRatio || 1;
+
+// 3. Többszintű (Tier) kategóriarendszer felállítása
+// -1 = Emergency, 0 = Low, 1 = Mid, 2 = High
+let tier = 2;
+
+const emergencyDevice =
+    memory <= 1 ||
+    cores <= 2 ||
+    (memory <= 2 && cores <= 2);
+
+if (emergencyDevice) {
+    tier = -1;
+} else if (memory <= 2 || cores <= 2) {
+    tier = 0;
+} else if (memory <= 4 || cores <= 4) {
+    tier = 1;
+}
 
 // Tabletek "leminősítése": a nagy képernyő miatt a Mid-tier beállítások biztonságosabbak számukra
-if (isTablet && tier === 2) tier = 1; 
+if (isTablet && tier === 2) tier = 1;
 
-// 4. Okos élsimítás (Anti-aliasing) döntés
-const dpr = window.devicePixelRatio || 1;
-// Telefonokon, ha nagyon sűrű a kijelző (Retina/OLED), felesleges az élsimítás
-const skipAntialias = isPhone && dpr >= 2; 
+
+
+const tierNames = {
+    [-1]: 'EMERGENCY',
+    0: 'LOW',
+    1: 'MID',
+    2: 'HIGH',
+};
 
 // 5. Grafikai profilok dedikálása a szintekhez
 const profiles = {
+    [-1]: { // EMERGENCY TIER
+        pixelRatio: Math.min(dpr, 0.8),
+        minPixelRatio: 0.55,
+        antialias: true,
+        shadows: true,
+        shadowMapSize: 256,
+        shadowType: THREE.PCFShadowMap,
+        exposure: 0.98,
+        power: 'low-power',
+        renderPixelBudget: 800_000,
+        shadowUpdateInterval: 320,
+    },
     0: { // LOW TIER
-        
-        pixelRatio: Math.min(dpr, 1), // Alacsonyabb felbontásból indítunk
-        antialias: true, // Okos döntés alapján
-        shadows: true, 
-        shadowMapSize: 206, 
+        pixelRatio: Math.min(dpr, 0.9),
+        minPixelRatio: 0.65,
+        antialias: true,
+        shadows: true,
+        shadowMapSize: 384,
+        shadowType: THREE.PCFShadowMap,
         exposure: 1.0,
-        power: 'low-power'
-       
-        
+        power: 'low-power',
+        renderPixelBudget: 900_000,
+        shadowUpdateInterval: 240,
     },
     1: { // MID TIER (Tabletek, átlagos mobilok)
-        
-        pixelRatio: Math.min(dpr, 1.3), 
-        antialias: true, // Okos döntés alapján
-        shadows: true, 
-        shadowMapSize: 512, // Kisebb árnyéktérkép
+        pixelRatio: Math.min(dpr, 1.3),
+        minPixelRatio: 0.75,
+        antialias: true,
+        shadows: true,
+        shadowMapSize: 512,
+        shadowType: THREE.PCFShadowMap,
         exposure: 1.05,
-        power: 'default'
-      
+        power: 'default',
+        renderPixelBudget: 1_300_000,
+        shadowUpdateInterval: 200,
         
     },
-    2: { // HIGH TIER (Erős asztali gépek)
-    
-        pixelRatio: Math.min(dpr, 1.75), 
-        antialias: true, 
-        shadows: true, 
-        shadowMapSize: 1024, 
+    2: {
+        // HIGH TIER (Erős asztali gépek)
+        pixelRatio: Math.min(dpr, 1.6),
+        minPixelRatio: 0.85,
+        antialias: true,
+        shadows: true,
+        shadowMapSize: 1024,
+        shadowType: THREE.PCFShadowMap,
         exposure: 1.12,
-        power: 'high-performance'
-        
+        power: 'high-performance',
+        renderPixelBudget: 1_800_000,
+        shadowUpdateInterval: 100,
+       
     }
 };
 
 const profile = profiles[tier];
 
 // Költségvetés-ellenőrzés
-profile.pixelRatio = computeAdaptivePixelRatio(profile.pixelRatio);
+profile.pixelRatio = computeAdaptivePixelRatio(
+    profile.pixelRatio,
+    profile.renderPixelBudget,
+    profile.minPixelRatio
+);
 
-// 6. Renderer inicializálása
+// Renderer inicializálása
 const canvas = document.querySelector("#bg");
 const container = canvas?.parentElement || document.body;
 const renderer = new THREE.WebGLRenderer({
@@ -147,7 +168,7 @@ renderer.toneMappingExposure = profile.exposure;
 
 if (profile.shadows) {
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = tier === 1 ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = profile.shadowType;
     renderer.shadowMap.autoUpdate = false;
     renderer.shadowMap.needsUpdate = true;
 } else {
@@ -157,6 +178,7 @@ if (profile.shadows) {
 
 sun.castShadow = profile.shadows;
 sun.shadow.mapSize.set(profile.shadowMapSize, profile.shadowMapSize);
+sun.shadow.radius = tier <= 0 ? 0.8 : 1.6;
 sun.shadow.camera.updateProjectionMatrix();
 
 
@@ -167,18 +189,20 @@ ktx2Loader.detectSupport(renderer);
 const loader = new GLTFLoader();
 loader.setKTX2Loader(ktx2Loader);
 
-// ===== KIEGÉSZÍTŐ FÉNYEK =====
+
+// ----- Debug overlay -----
 const fpsOverlay = document.createElement("div");
 fpsOverlay.className = "fps-overlay";
 fpsOverlay.textContent = "FPS: --";
 document.body.appendChild(fpsOverlay);
+/*
 const debugOverlay = document.createElement("div");
-debugOverlay.className = "fps-overlay"; // ugyanazt a stílust használja, mint az FPS kijelző
-debugOverlay.style.top = "60px"; // hogy ne fedje egymást az FPS kijelzővel — igazítsd a saját CSS-edhez
+debugOverlay.className = "fps-overlay";
+debugOverlay.style.top = "60px";
 debugOverlay.style.fontSize = "11px";
 debugOverlay.style.whiteSpace = "pre-line";
 debugOverlay.textContent = `
-Tier: ${tier} (${tier === 0 ? 'LOW' : tier === 1 ? 'MID' : 'HIGH'})
+Tier: ${tier} (${tierNames[tier]})
 Device: ${isIOS ? 'iOS' : isPhone ? 'Phone' : isTablet ? 'Tablet' : 'Desktop'}
 Cores: ${cores} | Memory: ${memory}GB
 DPR: ${dpr.toFixed(2)} | PixelRatio: ${profile.pixelRatio.toFixed(2)}
@@ -186,11 +210,12 @@ Antialias: ${profile.antialias} | Shadows: ${profile.shadows}
 ShadowMapSize: ${profile.shadowMapSize} | Power: ${profile.power}
 `.trim();
 document.body.appendChild(debugOverlay);
-
+*/
 let fpsFrames = 0;
 let fpsLastUpdate = performance.now();
 let shadowDirty = true;
 let lastShadowUpdate = 0;
+let lastRenderTime = 0;
 
 function updateFpsDisplay(now) {
     fpsFrames += 1;
@@ -208,7 +233,7 @@ function requestShadowUpdate() {
 function updateShadowMap(now) {
     if (!profile.shadows) return;
 
-    const interval = tier === 0 ? 240 : 140;
+    const interval = profile.shadowUpdateInterval;
     if (shadowDirty && (now - lastShadowUpdate >= interval || lastShadowUpdate === 0)) {
         renderer.shadowMap.needsUpdate = true;
         lastShadowUpdate = now;
@@ -244,40 +269,7 @@ const rectReplacementLights = rectReplacementConfigs.map(cfg => {
     scene.add(pl);
     return pl;
 });
- //GUI fényeléshez
-/*
 
-
-
-const gui = new GUI();
-
-const sunFolder = gui.addFolder('Sun');
-sunFolder.add(sun.position, 'x', -10, 10, 0.1);
-sunFolder.add(sun.position, 'y', -10, 10, 0.1);
-sunFolder.add(sun.position, 'z', -10, 10, 0.1);
-sunFolder.add(sun, 'intensity', 0, 10, 0.1);
-
-pointLights.forEach((pl, i) => {
-    const f = gui.addFolder(`PointLight ${i}`);
-    f.add(pl.position, 'x', -8, 8, 0.1);
-    f.add(pl.position, 'y', -8, 8, 0.1);
-    f.add(pl.position, 'z', -8, 8, 0.1);
-    f.add(pl, 'intensity', 0, 15, 0.1);
-});
-
-rectLights.forEach((rl, i) => {
-    const f = gui.addFolder(`RectLight ${i}`);
-    f.add(rl.position, 'x', -8, 8, 0.1);
-    f.add(rl.position, 'y', -8, 8, 0.1);
-    f.add(rl.position, 'z', -8, 8, 0.1);
-    f.add(rl.rotation, 'x', -Math.PI, Math.PI, 0.01);
-    f.add(rl.rotation, 'y', -Math.PI, Math.PI, 0.01);
-    f.add(rl, 'intensity', 0, 20, 0.1);
-    f.add(rl, 'width', 0.1, 5, 0.1);
-    f.add(rl, 'height', 0.1, 5, 0.1);
-});
-
-*/
 
 // gizmo
 
@@ -359,14 +351,13 @@ let baseY = 0;
 
 const modelUrls = [
     /*
-        new URL('./models/fKisMeretKocka2.glb', import.meta.url).href,
+    new URL('./models/fKisMeretKocka2.glb', import.meta.url).href,
     new URL('./models/PlaneMeret.glb', import.meta.url).href,
     new URL('./models/Nyil6.glb', import.meta.url).href,
 
-    
     */
 
-    new URL('./models/kocka-ktx2.glb', import.meta.url).href,
+    new URL('./models/UjKocka1-ktx2.glb', import.meta.url).href,
     new URL('./models/plane-ktx2.glb', import.meta.url).href,
     new URL('./models/Nyil6.glb', import.meta.url).href,
 ];
@@ -421,12 +412,17 @@ function updateCameraProjection() {
 
     renderer.setSize(width, height, false);
 
-     // A régi, hibás sorok helyett:
-    const adaptivePixelRatio = computeAdaptivePixelRatio(profile.pixelRatio);
+    const adaptivePixelRatio = computeAdaptivePixelRatio(
+        profile.pixelRatio,
+        profile.renderPixelBudget,
+        profile.minPixelRatio
+    );
     renderer.setPixelRatio(adaptivePixelRatio);
 
 
     camera.aspect = aspect;
+
+     
 
     if (aspect < 1) {
         const radAngle = DEFAULT_FOV * Math.PI / 180;
@@ -447,6 +443,7 @@ updateCameraProjection();
 
 function animate() {
     requestAnimationFrame(animate);
+    const now = performance.now();
 
     let isMoving = false;
 
@@ -464,7 +461,6 @@ function animate() {
         const yDiff = Math.abs(cubeStructure.position.y - previousY);
         const rotDiff = Math.abs(cubeStructure.rotation.y - previousRotation);
 
-        // "Mozgásban van" akkor, ha a rotáció/pozíció ténylegesen, érdemben változott
         isMoving = autoRotate || dragging || yDiff > 0.0001 || rotDiff > 0.0001;
     }
 
@@ -473,11 +469,17 @@ function animate() {
         renderer.shadowMap.needsUpdate = true;
     } else {
         // Csak álló helyzetben engedjük a ritkított/egyszeri frissítést
-        updateShadowMap(performance.now());
+        updateShadowMap(now);
     }
 
+    if (profile.shadowUpdateInterval > 0 && now - lastRenderTime < 1000 / 30 && tier === -1) {
+        updateFpsDisplay(now);
+        return;
+    }
+
+    lastRenderTime = now;
     renderer.render(scene, camera);
-    updateFpsDisplay(performance.now());
+    updateFpsDisplay(now);
 }
 
 // esemenykezeles
@@ -544,4 +546,3 @@ window.addEventListener("touchmove", (e) => {
 
 
 animate();
-//// háttér legyen fényesebb
